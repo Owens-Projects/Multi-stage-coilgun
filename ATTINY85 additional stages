@@ -1,0 +1,50 @@
+//Code for additional stages for the 30mm projectile
+// waitTime and onTime variables to be adjusted to suit the distance the light gate is from the coil and the sped the projectile is tavelling afer each stage
+
+#include <avr/io.h>
+#include <avr/interrupt.h>
+
+// Define pins for switch the LED, plus the chosen interrupt for reacting to
+#define INTERRUPT_PIN PCINT3  // This is PB3 per the schematic
+#define INT_PIN PB3           // Interrupt pin of choice: PB3 (same as PCINT3) - Pin 2
+#define OUT_PIN PB1           // PB1 - Pin 6
+#define PCINT_VECTOR PCINT0_vect
+
+bool FIRE_FLAG;
+int waitTime = 200; // time to wait until turning on coil in microseconds
+int onTime = 1200; // time mosfet is turned on for in microseconds
+
+void setup()
+{
+    // Configuration for enabling the interrupt 
+    pinMode(OUT_PIN, OUTPUT);
+
+    cli();                            // Disable interrupts during setup
+ 
+    PCMSK |= (3 << INTERRUPT_PIN);    // Enable interrupt handler (ISR) for our chosen interrupt pin (PCINT3/PB3/pin 2)
+
+    GIMSK |= (1 << PCIE);             // Enable PCINT interrupt in the general interrupt mask
+
+    pinMode(INT_PIN, INPUT);          // Set our interrupt pin as input
+
+    sei();                            //last line of setup - enable interrupts after setup
+}
+
+void loop()
+{
+
+  if (FIRE_FLAG == true){
+    delayMicroseconds(waitTime);       //time to wait from light gate beam breaking until beginning of coil
+    digitalWrite(OUT_PIN, HIGH);
+    delayMicroseconds(onTime);         //time the coil is energized for
+    digitalWrite(OUT_PIN, LOW);
+    delay(2000);
+    FIRE_FLAG = false;
+  }
+
+}
+
+ISR(PCINT_VECTOR)
+{
+  FIRE_FLAG = true;
+}
